@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: adi-hosting-v3
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: TELEGRAM_KEY_BOT_TOKEN
+        sync: false
+      - key: ADMIN_TELEGRAM_ID
+        sync: false
+      - key: UPI_ID
+        value: rupendr71@yb1
+      - key: UPI_NAME
+        value: Rupendra Yadav
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true

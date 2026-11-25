@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADI HOSTING — SECURE TERMINAL v3.0</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, #081814 0%, #05070a 65%, #020305 100%);
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated Rainbow Border (Matches screenshot + video RGB transition) */
+  @keyframes rainbowShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 18px rgba(0, 255, 170, 0.35), 0 0 35px rgba(255, 0, 128, 0.25); }
+    50% { box-shadow: 0 0 28px rgba(0, 212, 255, 0.55), 0 0 45px rgba(255, 180, 0, 0.35); }
+  }
+
+  .rainbow-frame {
+    position: relative;
+    border-radius: 26px;
+    padding: 3px;
+    background: linear-gradient(120deg, #ff007f, #ff8c00, #ffe600, #00ff88, #00d4ff, #a855f7, #ff007f);
+    background-size: 300% 300%;
+    animation: rainbowShift 5s ease infinite, pulseGlow 4s ease-in-out infinite;
+  }
+  .terminal-card {
+    background: linear-gradient(180deg, #061310 0%, #050a0c 100%);
+    border-radius: 24px;
+    padding: 32px 24px;
+    text-align: center;
+  }
+
+  /* Gate Screen */
+  #gateScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 18px;
+  }
+  .gate-wrap { width: 100%; max-width: 420px; }
+
+  .logo-ring {
+    width: 112px; height: 112px; margin: 0 auto 18px;
+    border-radius: 50%;
+    padding: 4px;
+    background: linear-gradient(45deg, #00ff66, #00d4ff, #ff007f, #00ff66);
+    background-size: 300% 300%;
+    animation: rainbowShift 4s linear infinite;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 25px rgba(0,255,102,0.45);
+  }
+  .logo-inner {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: radial-gradient(circle, #0b261d, #030b08);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif;
+  }
+  .logo-a { font-size: 34px; font-weight: 800; color: #38bdf8; line-height: 1; text-shadow: 0 0 12px #38bdf8; }
+  .logo-sub { font-size: 10px; font-weight: 800; color: #22c55e; letter-spacing: 1px; margin-top: 2px; }
+
+  .brand-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 25px; font-weight: 800; letter-spacing: 3px;
+    background: linear-gradient(90deg, #ff2a85, #ff7b54, #00f5d4, #38bdf8, #ff2a85);
+    background-size: 250% auto;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: rainbowShift 4s linear infinite;
+  }
+  .brand-tag {
+    font-size: 11px; letter-spacing: 3px; color: #475569; margin: 6px 0 26px;
+  }
+  .prompt-label {
+    text-align: left; font-size: 13px; font-weight: 700; color: #ec4899;
+    margin-bottom: 10px; letter-spacing: 1px;
+  }
+  .cursor-block {
+    display: inline-block; width: 9px; height: 15px; background: #ec4899;
+    vertical-align: middle; margin-left: 4px; animation: blink 1s infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .key-input {
+    width: 100%; padding: 15px 16px; border-radius: 12px;
+    background: #020608; border: 1.5px solid #1e293b;
+    color: #00ffcc; font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; letter-spacing: 2px; outline: none; margin-bottom: 16px;
+    transition: 0.25s;
+  }
+  .key-input:focus { border-color: #00f5d4; box-shadow: 0 0 15px rgba(0,245,212,0.25); }
+
+  .btn-cyber {
+    width: 100%; padding: 14px; border-radius: 12px; font-family: 'Orbitron', sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: 2px; cursor: pointer;
+    background: rgba(5, 15, 20, 0.9); transition: 0.25s; margin-bottom: 12px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-cyan { border: 2px solid #06b6d4; color: #38bdf8; box-shadow: 0 0 12px rgba(6,182,212,0.25); }
+  .btn-cyan:hover { background: #06b6d4; color: #020617; }
+  .btn-green { border: 2px solid #22c55e; color: #4ade80; box-shadow: 0 0 12px rgba(34,197,94,0.25); }
+  .btn-green:hover { background: #22c55e; color: #020617; }
+
+  .warn-foot { font-size: 10px; color: #334155; margin-top: 16px; letter-spacing: 1px; line-height: 1.6; }
+
+  /* Modal for Buy Key + Dynamic QR */
+  .modal-bg {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 999; align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-box {
+    background: #07111a; border: 2px solid #00f5d4; border-radius: 20px;
+    max-width: 430px; width: 100%; padding: 22px; text-align: center;
+    box-shadow: 0 0 30px rgba(0,245,212,0.3);
+  }
+  .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+  .plan-card {
+    background: #0b1926; border: 1.5px solid #1e293b; border-radius: 12px;
+    padding: 12px; cursor: pointer; transition: 0.2s;
+  }
+  .plan-card.active, .plan-card:hover { border-color: #22c55e; background: #0d241c; }
+
+  /* Main Hosting Dashboard */
+  #dashboardScreen { display: none; max-width: 1150px; margin: 0 auto; padding: 20px; }
+  .topbar {
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+    gap: 12px; padding: 16px 20px; border-radius: 18px;
+    background: #071118; border: 1.5px solid #1e293b; margin-bottom: 20px;
+  }
+  .tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .tab-btn {
+    padding: 11px 18px; border-radius: 12px; border: 1.5px solid #1e293b;
+    background: #08131c; color: #94a3b8; cursor: pointer; font-weight: 700;
+  }
+  .tab-btn.active {
+    background: linear-gradient(90deg, #ec4899, #8b5cf6, #06b6d4);
+    color: #fff; border-color: transparent;
+  }
+  .card {
+    background: #071118; border: 1.5px solid #1e293b; border-radius: 18px;
+    padding: 20px; margin-bottom: 18px;
+  }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; }
+  .log-console {
+    background: #020508; color: #22c55e; border: 1px solid #1e293b;
+    border-radius: 12px; padding: 14px; height: 260px; overflow-y: auto;
+    font-size: 12px; white-space: pre-wrap;
+  }
+  .badge { padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .b-run { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid #22c55e; }
+  .b-stop { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid #ef4444; }
+  .sm-btn {
+    padding: 7px 12px; border-radius: 8px; border: none; cursor: pointer;
+    font-weight: 700; font-size: 12px; margin-right: 6px; margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: TERMINAL ACCESS GATE (EXACT SCREENSHOT MATCH) -->
+<div id="gateScreen">
+  <div class="gate-wrap rainbow-frame">
+    <div class="terminal-card">
+      <div class="logo-ring">
+        <div class="logo-inner">
+          <div class="logo-a">A</div>
+          <div class="logo-sub">ADI<br>HOSTING</div>
+        </div>
+      </div>
+
+      <div class="brand-title" id="uiBrand">ADI HOSTING</div>
+      <div class="brand-tag" id="uiTagline">· SECURE TERMINAL v3.0 ·</div>
+
+      <div class="prompt-label">&gt; ACCESS_REQUEST<span class="cursor-block"></span></div>
+      <input type="text" id="accessKeyInput" class="key-input" placeholder="| ENTER ACCESS KEY ·" autocomplete="off">
+      <div id="gateErr" style="color:#f43f5e;font-size:12px;margin-bottom:10px;display:none;"></div>
+
+      <button class="btn-cyber btn-cyan" onclick="verifyKey()">&gt;_ ACCESS WEBSITE</button>
+      <button class="btn-cyber btn-green" onclick="openBuyModal()">🔑 BUY ACCESS KEY</button>
+      <a id="supportLink" href="https://t.me/kumar_raj_qn_bot" target="_blank" style="text-decoration:none;">
+        <button type="button" class="btn-cyber btn-green">💬 SUPPORT</button>
+      </a>
+
+      <div class="warn-foot">
+        ⚠️ UNAUTHORIZED ACCESS PROHIBITED<br>
+        ADI HOSTING · SECURE SYSTEMS
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BUY ACCESS KEY & UPI QR MODAL -->
+<div class="modal-bg" id="buyModal">
+  <div class="modal-box">
+    <h3 style="color:#00f5d4;font-family:'Orbitron',sans-serif;">💎 BUY HOSTING PLAN</h3>
+    <p style="font-size:12px;color:#94a3b8;margin-top:4px;">Select plan, scan UPI QR & submit UTR for instant key</p>
+    <div class="plan-grid" id="planCards"></div>
+
+    <div style="background:#0a1520;padding:12px;border-radius:14px;border:1px dashed #22c55e;">
+      <img id="upiQrImg" src="/api/qr?amount=35" alt="UPI QR" style="width:165px;height:165px;border-radius:10px;">
+      <div style="font-size:12px;color:#4ade80;margin-top:6px;">UPI: <b id="uiUpiId">rupendr71@yb1</b></div>
+      <div style="font-size:11px;color:#94a3b8;">Payee: <span id="uiUpiName">Rupendra Yadav</span></div>
+    </div>
+
+    <input type="text" id="utrInput" class="key-input" style="margin-top:12px;margin-bottom:8px;" placeholder="Enter 12-Digit UTR Number">
+    <input type="text" id="contactInput" class="key-input" style="margin-bottom:10px;" placeholder="Your Telegram @username or Email">
+    <button class="btn-cyber btn-green" onclick="submitPayment()">✅ SUBMIT PAYMENT PROOF</button>
+    <button class="btn-cyber btn-cyan" onclick="closeBuyModal()">✖ CLOSE</button>
+  </div>
+</div>
+
+<!-- SCREEN 2: FULL HOSTING DASHBOARD -->
+<div id="dashboardScreen">
+  <div class="topbar rainbow-frame" style="padding:2px;">
+    <div style="background:#071118;width:100%;border-radius:16px;padding:14px 18px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+      <div>
+        <div class="brand-title" style="font-size:20px;">ADI HOSTING CLOUD</div>
+        <div style="font-size:12px;color:#94a3b8;" id="planSummary">Plan: Loading...</div>
+      </div>
+      <div>
+        <a href="/admin" target="_blank"><button class="sm-btn" style="background:#8b5cf6;color:#fff;">⚙️ Admin Panel</button></a>
+        <button class="sm-btn" style="background:#ef4444;color:#fff;" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('botsTab', this)">🤖 Telegram Bot Hosting</button>
+    <button class="tab-btn" onclick="switchTab('sitesTab', this)">🌐 Website Hosting</button>
+    <button class="tab-btn" onclick="switchTab('filesTab', this)">📁 APK / Video / File Vault</button>
+    <button class="tab-btn" onclick="switchTab('qrTab', this)">📱 QR Code Generator</button>
+  </div>
+
+  <!-- TAB 1: BOT HOSTING -->
+  <div id="botsTab" class="tab-pane">
+    <div class="card">
+      <h3 style="color:#38bdf8;margin-bottom:12px;">🚀 Deploy New Python / Node.js Telegram Bot</h3>
+      <div class="grid-2">
+        <input type="text" id="botName" class="key-input" placeholder="Bot Name (e.g. my-store-bot)">
+        <input type="text" id="botToken" class="key-input" placeholder="Telegram BOT_TOKEN (optional here)">
+      </div>
+      <input type="file" id="botFile" class="key-input" accept=".zip,.py,.js">
+      <button class="btn-cyber btn-green" style="max-width:280px;" onclick="uploadBot()">⬆️ UPLOAD & DEPLOY BOT</button>
+    </div>
+
+    <div class="grid-2" id="botsList"></div>
+
+    <div class="card" id="logBoxCard" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h3 style="color:#4ade80;">📟 Live Deployment Console: <span id="activeBotLogName"></span></h3>
+        <div>
+          <button class="sm-btn" style="background:#06b6d4;color:#000;" onclick="refreshLogs()">🔄 Refresh</button>
+          <button class="sm-btn" style="background:#f59e0b;color:#000;" onclick="clearBotLogs()">🧹 Clear</button>
+        </div>
+      </div>
+      <div class="log-console" id="logConsole"></div>
+      <div style="margin-top:12px;">
+        <h4 style="color:#f472b6;margin-bottom:6px;">🔐 Environment Variables (.env format)</h4>
+        <textarea id="envEditor" class="key-input" rows="3" placeholder="BOT_TOKEN=123456:ABC...&#10;ADMIN_ID=987654321"></textarea>
+        <button class="sm-btn" style="background:#22c55e;color:#000;" onclick="saveEnv()">💾 Save Env Variables</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: WEBSITE HOSTING -->
+  <div id="sitesTab" class="tab-pane" style="display:none;">
+    <div class="card">
+      <h3 style="color:#00f5d4;margin-bottom:12px;">🌐 Host Static Website (HTML / CSS / JS or ZIP)</h3>
+      <div class="grid-2">
+        <input type="text" id="siteName" class="key-input" placeholder="Site Sub-Slug (e.g. portfolio)">
+        <input type="file" id="siteFile" class="key-input" accept=".html,.zip">
+      </div>
+      <button class="btn-cyber btn-cyan" style="max-width:280px;" onclick="deploySite()">🚀 PUBLISH WEBSITE LIVE</button>
+    </div>
+    <div class="grid-2" id="sitesList"></div>
+  </div>
+
+  <!-- TAB 3: FILE / APK / VIDEO / IMAGE SHARE -->
+  <div id="filesTab" class="tab-pane" style="display:none;">
+    <div class="card">
+      <h3 style="color:#f472b6;margin-bottom:12px;">📦 Cloud File Share (APK, Video, Audio, Images, ZIP)</h3>
+      <input type="file" id="cloudFile" class="key-input">
+      <button class="btn-cyber btn-green" style="max-width:280px;" onclick="uploadCloudFile()">☁️ UPLOAD & GET LINK + QR</button>
+    </div>
+    <div class="grid-2" id="filesList"></div>
+  </div>
+
+  <!-- TAB 4: INSTANT QR GENERATOR -->
+  <div id="qrTab" class="tab-pane" style="display:none;">
+    <div class="card" style="text-align:center;max-width:460px;margin:auto;">
+      <h3 style="color:#38bdf8;margin-bottom:10px;">📱 Instant Neon QR Code Generator</h3>
+      <input type="text" id="customQrText" class="key-input" placeholder="Enter URL, Telegram Link, or UPI String">
+      <button class="btn-cyber btn-cyan" onclick="makeCustomQr()">⚡ GENERATE QR CODE</button>
+      <img id="customQrPreview" src="/api/qr?data=https://t.me/kumar_raj_qn_bot" style="width:200px;height:200px;margin-top:14px;border-radius:14px;border:2px solid #00ffcc;">
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedPlanId = 'p30';
+let activeLogBotId = null;
+
+async function init() {
+  const res = await fetch('/api/public-config');
+  const cfg = await res.json();
+  document.getElementById('uiBrand').innerText = cfg.brandName;
+  document.getElementById('uiTagline').innerText = '· ' + cfg.tagline + ' ·';
+  document.getElementById('supportLink').href = cfg.supportUrl;
+  document.getElementById('uiUpiId').innerText = cfg.upiId;
+  document.getElementById('uiUpiName').innerText = cfg.upiName;
+
+  const pc = document.getElementById('planCards');
+  pc.innerHTML = cfg.plans.map(p => `
+    <div class="plan-card ${p.id === selectedPlanId ? 'active' : ''}" onclick="selectPlan('${p.id}', ${p.price}, this)">
+      <div style="font-weight:800;color:#fff;">${p.name}</div>
+      <div style="color:#4ade80;font-size:16px;font-weight:800;">₹${p.price}</div>
+      <div style="font-size:11px;color:#94a3b8;">${p.maxBots} Bots · ${p.maxSites} Sites</div>
+    </div>
+  `).join('');
+
+  if (cfg.authenticated) {
+    showDashboard();
+  }
+}
+
+function selectPlan(id, price, el) {
+  selectedPlanId = id;
+  document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('upiQrImg').src = `/api/qr?amount=${price}&t=${Date.now()}`;
+}
+
+function openBuyModal() { document.getElementById('buyModal').style.display = 'flex'; }
+function closeBuyModal() { document.getElementById('buyModal').style.display = 'none'; }
+
+async function submitPayment() {
+  const utr = document.getElementById('utrInput').value.trim();
+  const contact = document.getElementById('contactInput').value.trim();
+  const res = await fetch('/api/submit-payment', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ utr, planId: selectedPlanId, contact })
+  });
+  const d = await res.json();
+  if (d.ok) {
+    alert('✅ Payment Proof Submitted! ID: ' + d.paymentId + '\nAdmin verification ke baad key activate hogi.');
+    closeBuyModal();
+  } else {
+    alert(d.error || 'Error');
+  }
+}
+
+async function verifyKey() {
+  const key = document.getElementById('accessKeyInput').value.trim();
+  const err = document.getElementById('gateErr');
+  err.style.display = 'none';
+  const res = await fetch('/api/verify-key', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ key })
+  });
+  const d = await res.json();
+  if (d.ok) {
+    showDashboard();
+  } else {
+    err.innerText = '❌ ' + d.error;
+    err.style.display = 'block';
+  }
+}
+
+function showDashboard() {
+  document.getElementById('gateScreen').style.display = 'none';
+  document.getElementById('dashboardScreen').style.display = 'block';
+  loadDashboard();
+}
+
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.reload();
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).style.display = 'block';
+  btn.classList.add('active');
+}
+
+async function loadDashboard() {
+  const res = await fetch('/api/dashboard');
+  if (!res.ok) return;
+  const d = await res.json();
+  const exp = new Date(d.keyInfo.expiresAt * 1000).toLocaleDateString();
+  document.getElementById('planSummary').innerText =
+    `Key: ${d.keyInfo.code} | Plan: ${d.keyInfo.planName} | Max Bots: ${d.keyInfo.maxBots} | Expires: ${exp}`;
+
+  document.getElementById('botsList').innerHTML = d.bots.map(b => `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;">
+        <b>🤖 ${b.name}</b>
+        <span class="badge ${b.metrics.status === 'running' ? 'b-run' : 'b-stop'}">${b.metrics.status.toUpperCase()}</span>
+      </div>
+      <div style="font-size:12px;color:#94a3b8;margin:8px 0;">
+        Runtime: ${b.runtime} (${b.entry}) | RAM: ${b.metrics.ramMB} MB | Uptime: ${b.metrics.uptime}s
+      </div>
+      <button class="sm-btn" style="background:#22c55e;color:#000;" onclick="botCmd('${b.id}','start')">▶ Start</button>
+      <button class="sm-btn" style="background:#ef4444;color:#fff;" onclick="botCmd('${b.id}','stop')">⏹ Stop</button>
+      <button class="sm-btn" style="background:#38bdf8;color:#000;" onclick="botCmd('${b.id}','restart')">🔄 Restart</button>
+      <button class="sm-btn" style="background:#a855f7;color:#fff;" onclick="openLogs('${b.id}','${b.name}')">📟 Logs & Env</button>
+      <button class="sm-btn" style="background:#334155;color:#fff;" onclick="botCmd('${b.id}','delete')">🗑</button>
+    </div>
+  `).join('') || '<p style="color:#64748b;">No bots deployed yet.</p>';
+
+  document.getElementById('sitesList').innerHTML = d.sites.map(s => `
+    <div class="card">
+      <b>🌐 ${s.name}</b>
+      <div style="font-size:12px;color:#38bdf8;margin:6px 0;">${location.origin}${s.url}</div>
+      <a href="${s.url}" target="_blank"><button class="sm-btn" style="background:#06b6d4;color:#000;">🔗 Open Live Site</button></a>
+      <button class="sm-btn" style="background:#22c55e;color:#000;" onclick="showQrFor('${location.origin}${s.url}')">📱 Site QR</button>
+    </div>
+  `).join('');
+
+  document.getElementById('filesList').innerHTML = d.files.map(f => `
+    <div class="card">
+      <b>📄 ${f.origName}</b> (${f.sizeKB} KB)
+      <div style="font-size:12px;color:#4ade80;margin:6px 0;">${location.origin}${f.url}</div>
+      <a href="${f.url}" target="_blank"><button class="sm-btn" style="background:#22c55e;color:#000;">⬇️ Open / Download</button></a>
+      <button class="sm-btn" style="background:#38bdf8;color:#000;" onclick="showQrFor('${location.origin}${f.url}')">📱 File QR</button>
+    </div>
+  `).join('');
+}
+
+async function uploadBot() {
+  const fd = new FormData();
+  fd.append('name', document.getElementById('botName').value);
+  fd.append('botToken', document.getElementById('botToken').value);
+  fd.append('file', document.getElementById('botFile').files[0]);
+  const res = await fetch('/api/bots/upload', { method: 'POST', body: fd });
+  const d = await res.json();
+  if (d.ok) { loadDashboard(); openLogs(d.bot.id, d.bot.name); }
+  else alert(d.error);
+}
+
+async function botCmd(id, act) {
+  await fetch(`/api/bots/${id}/${act}`, { method: 'POST' });
+  setTimeout(loadDashboard, 600);
+}
+
+async function openLogs(id, name) {
+  activeLogBotId = id;
+  document.getElementById('logBoxCard').style.display = 'block';
+  document.getElementById('activeBotLogName').innerText = name;
+  refreshLogs();
+}
+
+async function refreshLogs() {
+  if (!activeLogBotId) return;
+  const res = await fetch(`/api/bots/${activeLogBotId}/logs`);
+  const d = await res.json();
+  const box = document.getElementById('logConsole');
+  box.innerText = d.logs;
+  box.scrollTop = box.scrollHeight;
+}
+
+async function clearBotLogs() {
+  if (!activeLogBotId) return;
+  await fetch(`/api/bots/${activeLogBotId}/logs/clear`, { method: 'POST' });
+  refreshLogs();
+}
+
+async function saveEnv() {
+  if (!activeLogBotId) return;
+  const dotenv = document.getElementById('envEditor').value;
+  await fetch(`/api/bots/${activeLogBotId}/env`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ dotenv })
+  });
+  alert('✅ Environment variables saved! Restart bot to apply.');
+}
+
+async function deploySite() {
+  const fd = new FormData();
+  fd.append('name', document.getElementById('siteName').value);
+  fd.append('file', document.getElementById('siteFile').files[0]);
+  const res = await fetch('/api/sites/deploy', { method: 'POST', body: fd });
+  const d = await res.json();
+  if (d.ok) loadDashboard(); else alert(d.error);
+}
+
+async function uploadCloudFile() {
+  const fd = new FormData();
+  fd.append('file', document.getElementById('cloudFile').files[0]);
+  const res = await fetch('/api/files/upload', { method: 'POST', body: fd });
+  const d = await res.json();
+  if (d.ok) loadDashboard(); else alert(d.error);
+}
+
+function makeCustomQr() {
+  const txt = document.getElementById('customQrText').value.trim();
+  if (!txt) return;
+  document.getElementById('customQrPreview').src = `/api/qr?data=${encodeURIComponent(txt)}`;
+}
+
+function showQrFor(url) {
+  document.getElementById('customQrText').value = url;
+  makeCustomQr();
+  document.querySelectorAll('.tab-btn')[3].click();
+}
+
+setInterval(() => { if (activeLogBotId) refreshLogs(); }, 4000);
+init();
+</script>
+</body>
+</html>

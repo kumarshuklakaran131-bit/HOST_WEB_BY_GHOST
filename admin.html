@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADI HOSTING — ADMIN PANEL</title>
+<style>
+  body { background: #04070d; color: #e2e8f0; font-family: monospace; padding: 20px; }
+  .card { background: #09121e; border: 1.5px solid #1e293b; border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+  input, select { background: #03070c; border: 1px solid #334155; color: #00ffcc; padding: 10px; border-radius: 8px; margin: 4px; }
+  button { background: linear-gradient(90deg, #ec4899, #8b5cf6, #06b6d4); color: #fff; border: none; padding: 9px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+  th, td { border-bottom: 1px solid #1e293b; padding: 8px; text-align: left; }
+</style>
+</head>
+<body>
+
+<div id="loginBox" class="card" style="max-width:380px;margin:80px auto;text-align:center;">
+  <h2 style="color:#38bdf8;">🔐 ADI ADMIN LOGIN</h2>
+  <input type="password" id="adminPass" placeholder="Enter ADMIN_PASSWORD" style="width:90%;"><br>
+  <button onclick="adminLogin()">LOGIN TO ADMIN</button>
+</div>
+
+<div id="panel" style="display:none;max-width:1150px;margin:auto;">
+  <h1 style="color:#00ffcc;">⚡ ADI HOSTING — MASTER ADMIN CONTROL</h1>
+
+  <!-- 1. Generate Access Keys -->
+  <div class="card">
+    <h3>🔑 Generate New Access Key</h3>
+    <select id="planSelect">
+      <option value="p7">7 Days — ₹35</option>
+      <option value="p15">15 Days — ₹75</option>
+      <option value="p30" selected>30 Days — ₹150</option>
+      <option value="p9999">Unlimited VIP — ₹400</option>
+    </select>
+    <input type="text" id="customKeyInput" placeholder="Custom Key (Optional e.g. ADI-VIP-99)">
+    <button onclick="genKey()">➕ GENERATE KEY</button>
+    <div id="newKeyAlert" style="color:#4ade80;margin-top:8px;"></div>
+  </div>
+
+  <!-- 2. Pending UPI Payments -->
+  <div class="card">
+    <h3>💳 Payment / UTR Approval Queue</h3>
+    <table>
+      <thead><tr><th>ID</th><th>User</th><th>Plan</th><th>Amount</th><th>UTR / Proof</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="payTable"></tbody>
+    </table>
+  </div>
+
+  <!-- 3. Active Access Keys -->
+  <div class="card">
+    <h3>🗝️ Issued Access Keys</h3>
+    <table>
+      <thead><tr><th>Key Code</th><th>Plan</th><th>Limits</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="keysTable"></tbody>
+    </table>
+  </div>
+
+  <!-- 4. All Running Bots -->
+  <div class="card">
+    <h3>🤖 All Hosted Bots (Force Control)</h3>
+    <table>
+      <thead><tr><th>Bot ID</th><th>Name</th><th>Owner Key</th><th>Runtime</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="botsTable"></tbody>
+    </table>
+  </div>
+
+  <!-- 5. System & UPI Settings -->
+  <div class="card">
+    <h3>⚙️ Branding, UPI QR & Support Settings</h3>
+    Brand Name: <input id="sBrand">
+    UPI ID: <input id="sUpi">
+    Payee Name: <input id="sPayee">
+    Support URL: <input id="sSupport">
+    <button onclick="saveSettings()">💾 SAVE SETTINGS</button>
+  </div>
+
+  <!-- 6. Live System Activity Logs -->
+  <div class="card">
+    <h3>📜 System Activity Logs</h3>
+    <pre id="sysLogs" style="background:#020408;padding:12px;border-radius:10px;max-height:220px;overflow:auto;color:#22c55e;"></pre>
+  </div>
+</div>
+
+<script>
+async function adminLogin() {
+  const password = document.getElementById('adminPass').value;
+  const res = await fetch('/api/admin/login', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ password })
+  });
+  if (res.ok) {
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('panel').style.display = 'block';
+    loadAdmin();
+  } else alert('Wrong Admin Password');
+}
+
+async function loadAdmin() {
+  const res = await fetch('/api/admin/overview');
+  if (!res.ok) return;
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('panel').style.display = 'block';
+  const d = await res.json();
+
+  document.getElementById('sBrand').value = d.settings.brandName;
+  document.getElementById('sUpi').value = d.settings.upiId;
+  document.getElementById('sPayee').value = d.settings.upiName;
+  document.getElementById('sSupport').value = d.settings.supportUrl;
+
+  document.getElementById('payTable').innerHTML = d.payments.map(p => `
+    <tr>
+      <td>${p.id}</td><td>${p.tgName}</td><td>${p.planName}</td><td>₹${p.amount}</td>
+      <td><b>${p.utr}</b></td><td>${p.status}</td>
+      <td>${p.status === 'pending' ? `<button onclick="approvePay('${p.id}')">✅ Approve & Issue Key</button>` : (p.issuedKey || 'Done')}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('keysTable').innerHTML = d.keys.map(k => `
+    <tr>
+      <td><b>${k.code}</b></td><td>${k.planName}</td><td>${k.maxBots}B / ${k.maxSites}S</td>
+      <td>${new Date(k.expiresAt * 1000).toLocaleDateString()}</td>
+      <td>${k.banned ? 'BANNED' : 'ACTIVE'}</td>
+      <td>
+        <button onclick="adminAct('toggle_ban_key', {code:'${k.code}'})">Ban/Unban</button>
+        <button onclick="adminAct('delete_key', {code:'${k.code}'})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+
+  document.getElementById('botsTable').innerHTML = d.bots.map(b => `
+    <tr>
+      <td>${b.id}</td><td>${b.name}</td><td>${b.keyCode}</td><td>${b.runtime}</td><td>${b.metrics.status}</td>
+      <td>
+        <button onclick="adminAct('bot_control', {botId:'${b.id}', sub:'start'})">Start</button>
+        <button onclick="adminAct('bot_control', {botId:'${b.id}', sub:'stop'})">Stop</button>
+        <button onclick="adminAct('bot_control', {botId:'${b.id}', sub:'delete'})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+
+  document.getElementById('sysLogs').innerText = d.logs.map(l => `[${l.t}] ${l.msg}`).join('\n');
+}
+
+async function adminAct(action, extra = {}) {
+  const res = await fetch('/api/admin/action', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ action, ...extra })
+  });
+  const d = await res.json();
+  loadAdmin();
+  return d;
+}
+
+async function genKey() {
+  const d = await adminAct('generate_key', {
+    planId: document.getElementById('planSelect').value,
+    customCode: document.getElementById('customKeyInput').value
+  });
+  if (d.key) document.getElementById('newKeyAlert').innerText = '✅ Generated Key: ' + d.key.code;
+}
+
+async function approvePay(paymentId) {
+  const d = await adminAct('approve_payment', { paymentId });
+  if (d.issuedKey) alert('✅ Approved! Generated Key: ' + d.issuedKey);
+}
+
+async function saveSettings() {
+  await adminAct('save_settings', {
+    settings: {
+      brandName: document.getElementById('sBrand').value,
+      upiId: document.getElementById('sUpi').value,
+      upiName: document.getElementById('sPayee').value,
+      supportUrl: document.getElementById('sSupport').value
+    }
+  });
+  alert('✅ Settings Saved!');
+}
+
+loadAdmin();
+</script>
+</body>
+</html>
